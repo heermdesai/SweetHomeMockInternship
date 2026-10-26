@@ -403,6 +403,7 @@ public class HomePrintableComponent extends JComponent implements Printable {
 
 
 
+
   /**
    * Prints the plan page at <code>planPageIndex</code>, taking into account all the viewable levels
    * in their order. The selected level is always restored, even if printing fails.
@@ -410,11 +411,14 @@ public class HomePrintableComponent extends JComponent implements Printable {
   private int printPlanOfAllLevels(Graphics2D g2D, PageFormat pageFormat, Printable planView,
                                    int planPageIndex, boolean onePagePerLevel) throws PrinterException {
     Level previousSelectedLevel = this.home.getSelectedLevel();
+
     try {
       List<Level> levels = this.home.getLevels();
+
       if (levels.isEmpty()) {
         return planView.print(g2D, pageFormat, planPageIndex);
       }
+
       int remainingPages = planPageIndex;
 
       for (Level level : levels) {
@@ -423,40 +427,32 @@ public class HomePrintableComponent extends JComponent implements Printable {
         }
 
         this.home.setSelectedLevel(level);
-        int levelPageCount = 0;
 
-        if (onePagePerLevel) {
-          BufferedImage dummyImage = new BufferedImage(1, 1, BufferedImage.TYPE_INT_RGB);
-          Graphics dummyGraphics = dummyImage.getGraphics();
-          try {
-            if (planView.print(dummyGraphics, pageFormat, 0) == PAGE_EXISTS) {
-              levelPageCount = 1;
-            }
-          } finally {
-            dummyGraphics.dispose();
+        int levelPageCount = 0;
+        BufferedImage dummyImage = new BufferedImage(1, 1, BufferedImage.TYPE_INT_RGB);
+        Graphics dummyGraphics = dummyImage.getGraphics();
+
+        try {
+          while (planView.print(dummyGraphics, pageFormat, levelPageCount) == PAGE_EXISTS) {
+            levelPageCount++;
           }
-        } else {
-          BufferedImage dummyImage = new BufferedImage(1, 1, BufferedImage.TYPE_INT_RGB);
-          Graphics dummyGraphics = dummyImage.getGraphics();
-          try {
-            while (planView.print(dummyGraphics, pageFormat, levelPageCount) == PAGE_EXISTS) {
-              levelPageCount++;
-            }
-          } finally {
-            dummyGraphics.dispose();
-          }
+        } finally {
+          dummyGraphics.dispose();
         }
 
         if (remainingPages < levelPageCount) {
           return planView.print(g2D, pageFormat, remainingPages);
         }
+
         remainingPages -= levelPageCount;
       }
+
       return NO_SUCH_PAGE;
     } finally {
       this.home.setSelectedLevel(previousSelectedLevel);
     }
   }
+
 
 
   /**
