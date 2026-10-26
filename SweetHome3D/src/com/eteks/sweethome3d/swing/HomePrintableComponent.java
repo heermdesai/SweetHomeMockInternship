@@ -402,24 +402,19 @@ public class HomePrintableComponent extends JComponent implements Printable {
 
 
 
+
   /**
-   * Prints the plans of all viewable levels in their original order.
-   * Restores the previously selected level when printing finishes.
+   * Prints the plan page at <code>planPageIndex</code>, taking into account all the viewable levels
+   * in their order. The selected level is always restored, even if printing fails.
    */
-  private int printPlanOfAllLevels(Graphics2D g2D, PageFormat pageFormat,
-                                   Printable planView, int planPageIndex,
-                                   boolean onePagePerLevel) throws PrinterException {
-
-    Level previousLevel = this.home.getSelectedLevel();
-
+  private int printPlanOfAllLevels(Graphics2D g2D, PageFormat pageFormat, Printable planView,
+                                   int planPageIndex, boolean onePagePerLevel) throws PrinterException {
+    Level previousSelectedLevel = this.home.getSelectedLevel();
     try {
       List<Level> levels = this.home.getLevels();
-
-      // If there are no levels, print the current plan normally.
       if (levels.isEmpty()) {
         return planView.print(g2D, pageFormat, planPageIndex);
       }
-
       int remainingPages = planPageIndex;
 
       for (Level level : levels) {
@@ -428,39 +423,38 @@ public class HomePrintableComponent extends JComponent implements Printable {
         }
 
         this.home.setSelectedLevel(level);
+        int levelPageCount = 0;
 
-        int numberOfPages = 1;
-
-        if (!onePagePerLevel) {
-          BufferedImage image = new BufferedImage(
-                  1, 1, BufferedImage.TYPE_INT_RGB);
-
-          Graphics graphics = image.getGraphics();
-
+        if (onePagePerLevel) {
+          BufferedImage dummyImage = new BufferedImage(1, 1, BufferedImage.TYPE_INT_RGB);
+          Graphics dummyGraphics = dummyImage.getGraphics();
           try {
-            numberOfPages = 0;
-
-            while (planView.print(
-                    graphics, pageFormat, numberOfPages) == PAGE_EXISTS) {
-              numberOfPages++;
+            if (planView.print(dummyGraphics, pageFormat, 0) == PAGE_EXISTS) {
+              levelPageCount = 1;
             }
           } finally {
-            graphics.dispose();
+            dummyGraphics.dispose();
+          }
+        } else {
+          BufferedImage dummyImage = new BufferedImage(1, 1, BufferedImage.TYPE_INT_RGB);
+          Graphics dummyGraphics = dummyImage.getGraphics();
+          try {
+            while (planView.print(dummyGraphics, pageFormat, levelPageCount) == PAGE_EXISTS) {
+              levelPageCount++;
+            }
+          } finally {
+            dummyGraphics.dispose();
           }
         }
 
-        if (remainingPages < numberOfPages) {
-          return planView.print(
-                  g2D, pageFormat, remainingPages);
+        if (remainingPages < levelPageCount) {
+          return planView.print(g2D, pageFormat, remainingPages);
         }
-
-        remainingPages -= numberOfPages;
+        remainingPages -= levelPageCount;
       }
-
       return NO_SUCH_PAGE;
-
     } finally {
-      this.home.setSelectedLevel(previousLevel);
+      this.home.setSelectedLevel(previousSelectedLevel);
     }
   }
 
