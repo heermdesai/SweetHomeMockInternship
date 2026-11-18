@@ -359,19 +359,17 @@ public class HomePrintableComponent extends JComponent implements Printable {
         this.planPageCount++;
       }
     }
-    if (pageExists == NO_SUCH_PAGE
-            && planView != null
-            && (homePrint == null || homePrint.isPlanPrinted())) {
-      // Print one plan page per viewable level
-      pageExists = printPlanOfAllLevels(g2D, pageFormat, (Printable)planView,
-              page - this.furniturePageCount,
-              homePrint == null || homePrint.getPlanScale() == null);
-      if (pageExists == PAGE_EXISTS
-              && !this.printablePages.contains(page)) {
-        this.printablePages.add(page);
-        this.planPageCount++;
+      if (pageExists == NO_SUCH_PAGE
+              && planView != null
+              && (homePrint == null || homePrint.isPlanPrinted())) {
+          // PlanComponent prints one or more pages for each viewable level
+          pageExists = ((Printable)planView).print(g2D, pageFormat, page - this.furniturePageCount);
+          if (pageExists == PAGE_EXISTS
+                  && !this.printablePages.contains(page)) {
+              this.printablePages.add(page);
+              this.planPageCount++;
+          }
       }
-    }
     
     // Print header and footer
     if (pageExists == PAGE_EXISTS) {
@@ -404,54 +402,54 @@ public class HomePrintableComponent extends JComponent implements Printable {
 
 
 
-  /**
-   * Prints the plan page at <code>planPageIndex</code>, taking into account all the viewable levels
-   * in their order. The selected level is always restored, even if printing fails.
-   */
-  private int printPlanOfAllLevels(Graphics2D g2D, PageFormat pageFormat, Printable planView,
-                                   int planPageIndex, boolean onePagePerLevel) throws PrinterException {
-    Level previousSelectedLevel = this.home.getSelectedLevel();
-
-    try {
-      List<Level> levels = this.home.getLevels();
-
-      if (levels.isEmpty()) {
-        return planView.print(g2D, pageFormat, planPageIndex);
-      }
-
-      int remainingPages = planPageIndex;
-
-      for (Level level : levels) {
-        if (!level.isViewable()) {
-          continue;
-        }
-
-        this.home.setSelectedLevel(level);
-
-        int levelPageCount = 0;
-        BufferedImage dummyImage = new BufferedImage(1, 1, BufferedImage.TYPE_INT_RGB);
-        Graphics dummyGraphics = dummyImage.getGraphics();
-
-        try {
-          while (planView.print(dummyGraphics, pageFormat, levelPageCount) == PAGE_EXISTS) {
-            levelPageCount++;
-          }
-        } finally {
-          dummyGraphics.dispose();
-        }
-
-        if (remainingPages < levelPageCount) {
-          return planView.print(g2D, pageFormat, remainingPages);
-        }
-
-        remainingPages -= levelPageCount;
-      }
-
-      return NO_SUCH_PAGE;
-    } finally {
-      this.home.setSelectedLevel(previousSelectedLevel);
-    }
-  }
+//  /**
+//   * Prints the plan page at <code>planPageIndex</code>, taking into account all the viewable levels
+//   * in their order. The selected level is always restored, even if printing fails.
+//   */
+//  private int printPlanOfAllLevels(Graphics2D g2D, PageFormat pageFormat, Printable planView,
+//                                   int planPageIndex, boolean onePagePerLevel) throws PrinterException {
+//    Level previousSelectedLevel = this.home.getSelectedLevel();
+//
+//    try {
+//      List<Level> levels = this.home.getLevels();
+//
+//      if (levels.isEmpty()) {
+//        return planView.print(g2D, pageFormat, planPageIndex);
+//      }
+//
+//      int remainingPages = planPageIndex;
+//
+//      for (Level level : levels) {
+//        if (!level.isViewable()) {
+//          continue;
+//        }
+//
+//        this.home.setSelectedLevel(level);
+//
+//        int levelPageCount = 0;
+//        BufferedImage dummyImage = new BufferedImage(1, 1, BufferedImage.TYPE_INT_RGB);
+//        Graphics dummyGraphics = dummyImage.getGraphics();
+//
+//        try {
+//          while (planView.print(dummyGraphics, pageFormat, levelPageCount) == PAGE_EXISTS) {
+//            levelPageCount++;
+//          }
+//        } finally {
+//          dummyGraphics.dispose();
+//        }
+//
+//        if (remainingPages < levelPageCount) {
+//          return planView.print(g2D, pageFormat, remainingPages);
+//        }
+//
+//        remainingPages -= levelPageCount;
+//      }
+//
+//      return NO_SUCH_PAGE;
+//    } finally {
+//      this.home.setSelectedLevel(previousSelectedLevel);
+//    }
+//  }
 
 
 

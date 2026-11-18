@@ -2002,12 +2002,58 @@ public class PlanComponent extends JComponent implements PlanView, Scrollable, P
     }
     return strokeWidth;
   }
-  
+
+  /**
+   * Prints the plan of every viewable level, in the home levels order.
+   * The selected level is always restored, even if printing fails.
+   */
+  public int print(Graphics g, PageFormat pageFormat, int pageIndex) {
+    Level previousSelectedLevel = this.home.getSelectedLevel();
+    try {
+      List<Level> levels = this.home.getLevels();
+      if (levels.isEmpty()) {
+        return printSelectedLevel(g, pageFormat, pageIndex);
+      }
+      int remainingPages = pageIndex;
+      for (Level level : levels) {
+        if (!level.isViewable()) {
+          continue;
+        }
+        this.home.setSelectedLevel(level);
+        int levelPageCount = getSelectedLevelPrintPageCount(pageFormat);
+        if (remainingPages < levelPageCount) {
+          return printSelectedLevel(g, pageFormat, remainingPages);
+        }
+        remainingPages -= levelPageCount;
+      }
+      return NO_SUCH_PAGE;
+    } finally {
+      this.home.setSelectedLevel(previousSelectedLevel);
+    }
+  }
+
+  /**
+   * Returns the number of pages needed to print the selected level.
+   */
+  private int getSelectedLevelPrintPageCount(PageFormat pageFormat) {
+    BufferedImage dummyImage = new BufferedImage(1, 1, BufferedImage.TYPE_INT_RGB);
+    Graphics dummyGraphics = dummyImage.getGraphics();
+    try {
+      int count = 0;
+      while (printSelectedLevel(dummyGraphics, pageFormat, count) == PAGE_EXISTS) {
+        count++;
+      }
+      return count;
+    } finally {
+      dummyGraphics.dispose();
+    }
+  }
+
   /**
    * Prints this component plan at the scale given in the home print attributes or at a scale 
    * that makes it fill <code>pageFormat</code> imageable size if this attribute is <code>null</code>.
    */
-  public int print(Graphics g, PageFormat pageFormat, int pageIndex) {
+  private int printSelectedLevel(Graphics g, PageFormat pageFormat, int pageIndex) {
     List<Selectable> printedItems = getPaintedItems(); 
     Rectangle2D printedItemBounds = getItemsBounds(g, printedItems);
     if (printedItemBounds != null) {
